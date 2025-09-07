@@ -139,7 +139,7 @@
 </head>
 <body>
   <div class="chat-container">
-    <div class="chat-header">🤖 ChatBot</div>
+    <div class="chat-header">💼 Interview ChatBot</div>
     <div class="chat-box" id="chatBox">
       <div class="message bot">
         Hello! How can I help you today?
@@ -148,50 +148,77 @@
     </div>
     <div class="input-area">
       <input type="text" id="userInput" placeholder="Type a message...">
-      <button onclick="sendMessage()">✈</button>
+      <button onclick="sendMessage()"><span>&#8658;</span></button>
     </div>
   </div>
 
   <script>
-    const chatBox = document.getElementById('chatBox');
-    const userInput = document.getElementById('userInput');
+const chatBox = document.getElementById('chatBox');
+const userInput = document.getElementById('userInput');
 
-    function getTime() {
-      const now = new Date();
-      let hours = now.getHours();
-      let minutes = now.getMinutes().toString().padStart(2, '0');
-      let ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12 || 12;
-      return `${hours}:${minutes} ${ampm}`;
-    }
+function getTime() {
+  const now = new Date();
+  let hours = now.getHours();
+  let minutes = now.getMinutes().toString().padStart(2, '0');
+  let ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12 || 12;
+  return `${hours}:${minutes} ${ampm}`;
+}
 
-    function sendMessage() {
-      const text = userInput.value.trim();
-      if (text === '') return;
+// Send message function
+function sendMessage() {
+  const text = userInput.value.trim();
+  if (text === '') return;
 
-      // Add user message
-      const userMsg = document.createElement('div');
-      userMsg.className = 'message user';
-      userMsg.innerHTML = text + `<div class="timestamp">${getTime()}</div>`;
-      chatBox.appendChild(userMsg);
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'message user';
+  userMsg.innerHTML = text + `<div class="timestamp">${getTime()}</div>`;
+  chatBox.appendChild(userMsg);
 
-      userInput.value = '';
-      chatBox.scrollTop = chatBox.scrollHeight;
+  userInput.value = '';
+  chatBox.scrollTop = chatBox.scrollHeight;
 
-      // Simulate bot reply
-      setTimeout(() => {
-        const botMsg = document.createElement('div');
-        botMsg.className = 'message bot';
-        botMsg.innerHTML = 'I received: ' + text + `<div class="timestamp">${getTime()}</div>`;
-        chatBox.appendChild(botMsg);
-        chatBox.scrollTop = chatBox.scrollHeight;
-      }, 900);
-    }
+  // Typing indicator
+  const typingMsg = document.createElement('div');
+  typingMsg.className = 'message bot';
+  typingMsg.innerHTML = "💬 Bot is typing...";
+  chatBox.appendChild(typingMsg);
+  chatBox.scrollTop = chatBox.scrollHeight;
 
-    // Send on Enter key
-    userInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-  </script>
+  // Send to backend
+  fetch("add the url/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text })
+  })
+  .then(res => res.json())
+  .then(data => {
+    typingMsg.remove(); // remove typing message
+
+    const botMsg = document.createElement('div');
+    botMsg.className = 'message bot';
+    botMsg.innerHTML = data.reply + `<div class="timestamp">${getTime()}</div>`;
+    chatBox.appendChild(botMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  })
+  .catch(err => {
+    typingMsg.remove(); // remove typing message
+
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'message bot';
+    errorMsg.innerHTML = "⚠️ Error connecting to backend";
+    chatBox.appendChild(errorMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    console.error(err);
+  });
+}
+
+// Press Enter to send
+userInput.addEventListener("keypress", function(e) {
+  if (e.key === "Enter") sendMessage();
+});
+</script>
+
 </body>
 </html>
