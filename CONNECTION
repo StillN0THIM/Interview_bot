@@ -1,0 +1,124 @@
+# ===============================
+# Install required packages (Colab only)
+# ===============================
+!pip install fastapi nest_asyncio pyngrok uvicorn transformers torch --quiet
+
+# ===============================
+# Imports
+# ===============================
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+import nest_asyncio
+from pyngrok import ngrok
+import uvicorn
+import torch
+from google.colab import userdata
+
+# ===============================
+# Fix event loop for Colab
+# ===============================
+nest_asyncio.apply()
+
+# ===============================
+# Initialize FastAPI app
+# ===============================
+app = FastAPI()
+
+# Allow frontend access
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ===============================
+# Load Hugging Face FLAN-T5 model
+# ===============================
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+
+model_name = "google/flan-t5-small"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+# ===============================
+# Pydantic models
+# ===============================
+class Message(BaseModel):
+    message: str
+
+class QuestionRequest(BaseModel):
+    role: str
+    mode: str
+    domain: str = None
+
+# ===============================
+# Chat endpoint
+# ===============================
+@app.post("/chat")
+async def chat(msg: Message):
+    user_message = msg.message.lower()
+
+    if "generate question" in user_message:
+        # Default example question
+        prompt = "Generate a technical interview question for the role of Software Engineer."
+        inputs = tokenizer(prompt, return_tensors="pt")
+        outputs = model.generate(
+            **inputs,
+            max_length=100,
+            temperature=0.7,
+            do_sample=True,
+            top_p=0.9
+        )
+        reply = tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+    elif "hello" in user_message or "hi" in user_message:
+        reply = "Hello! How can I assist you with your interview preparation?"
+    elif "strength" in user_message:
+        reply = "I usually highlight my problem-solving skills and adaptability."
+    elif "weakness" in user_message:
+        reply = "I work on improving time management to perform better."
+    else:
+        reply = "Interesting! Can you elaborate more?"
+
+    return {"reply": reply}
+
+# ===============================
+# Generate interview question endpoint
+# ===============================
+@app.post("/generate-question")
+async def generate_question_api(req: QuestionRequest):
+    prompt = f"Generate a {req.mode} interview question for the role of {req.role}"
+    if req.domain:
+        prompt += f" in the domain of {req.domain}"
+    prompt += "."
+
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(
+        **inputs,
+        max_length=100,
+        temperature=0.7,
+        do_sample=True,
+        top_p=0.9
+    )
+    question = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return {"question": question}
+
+# ===============================
+# Start ngrok tunnel
+# ===============================
+# Replace this with your Colab secret NGROK token if needed
+NGROK_AUTH_TOKEN = userdata.get('backend')
+
+if NGROK_AUTH_TOKEN:
+    ngrok.set_auth_token(NGROK_AUTH_TOKEN)
+
+public_url = ngrok.connect(8000).public_url
+print("🚀 Public URL:", public_url)
+
+# ===============================
+# Run Uvicorn server
+# ===============================
+uvicorn.run(app, host="0.0.0.0", port=8000, reload=False)
