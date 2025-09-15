@@ -35,10 +35,16 @@ while True:
         print("\nBot (Evaluation Feedback):")
         print(f"Score (1-10): {score}")
 
+        # Try to convert score to int, handle non-numeric responses
+        try:
+            score_int = int(score) if score.isdigit() else None
+        except (ValueError, AttributeError):
+            score_int = None
+            
         tracker.add_record(
             question=current_question,
             answer=user_answer,
-            score=int(score) if score.isdigit() else None,
+            score=score_int,
             feedback=f"Score provided: {score}"
         )
 

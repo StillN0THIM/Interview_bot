@@ -1,7 +1,7 @@
 # ===============================
 # Install required packages (Colab only)
 # ===============================
-!pip install fastapi nest_asyncio pyngrok uvicorn transformers torch --quiet
+#pip install fastapi nest_asyncio pyngrok uvicorn transformers torch --quiet
 
 # ===============================
 # Imports
@@ -13,7 +13,7 @@ import nest_asyncio
 from pyngrok import ngrok
 import uvicorn
 import torch
-from google.colab import userdata
+# from google.colab import userdata  # Only needed for Google Colab
 import logging
 
 # Configure logging
@@ -124,7 +124,8 @@ async def generate_question_api(req: QuestionRequest):
 # Start ngrok tunnel
 # ===============================
 # Replace this with your Colab secret NGROK token if needed
-NGROK_AUTH_TOKEN = userdata.get('backend')
+# NGROK_AUTH_TOKEN = userdata.get('backend')  # Only for Google Colab
+NGROK_AUTH_TOKEN = None  # Set your ngrok token here if needed
 
 if NGROK_AUTH_TOKEN:
     ngrok.set_auth_token(NGROK_AUTH_TOKEN)
